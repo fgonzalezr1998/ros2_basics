@@ -20,6 +20,20 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 
+set(dependencies
+    rclcpp
+    std_msgs
+)
+
+add_executable(pointcloud_tf_transformer src/pointcloud_tf_transformer.cpp)
+ament_target_dependencies(pointcloud_tf_transformer ${dependencies})
+
+
+install(TARGETS
+    pointcloud_tf_transformer
+    EXPORT export_${PROJECT_NAME}
+    DESTINATION lib/${PROJECT_NAME}
+)
 
 # uncomment the following section in order to fill in
 # further dependencies manually.
