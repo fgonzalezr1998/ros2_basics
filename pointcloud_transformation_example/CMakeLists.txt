@@ -19,10 +19,27 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_sensor_msgs REQUIRED)
+find_package(PCL REQUIRED QUIET COMPONENTS common io)
+find_package(pcl_conversions REQUIRED)
 
 set(dependencies
     rclcpp
     std_msgs
+    sensor_msgs
+    geometry_msgs
+    tf2
+    tf2_sensor_msgs
+    tf2_ros
+)
+
+include_directories(
+  include/
+  ${PCL_COMMON_INCLUDE_DIRS}
 )
 
 add_executable(pointcloud_tf_transformer src/pointcloud_tf_transformer.cpp)
