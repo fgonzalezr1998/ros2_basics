@@ -1,6 +1,13 @@
 #include <rclcpp/rclcpp.hpp>
-#include "yolact_ros_msgs/msg/detections.hpp"
-#include "yolact_ros_msgs/msg/detection.hpp"
+#include <cv_bridge/cv_bridge.h>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/core/mat.hpp>
+#include <sensor_msgs/msg/image.hpp>
+
+#include "yolact_ros2_msgs/msg/detections.hpp"
+#include "yolact_ros2_msgs/msg/detection.hpp"
+#include "yolact_ros2_msgs/msg/mask.hpp"
 
 using std::placeholders::_1;
 
@@ -13,8 +20,10 @@ public:
 	{
 		RCLCPP_INFO(this->get_logger(), "Hi! I am '%s' node\n", this->get_name());
 
-		yolact_dets_sub_ = this->create_subscription<yolact_ros_msgs::msg::Detections>("/yolact_ros/detections",
+		yolact_dets_sub_ = this->create_subscription<yolact_ros2_msgs::msg::Detections>("/yolact_ros2/detections",
 											1, std::bind(&YolactTest::yolact_dets_cb, this, _1));
+		camera_img_sub_ = this->create_subscription<sensor_msgs::msg::Image>("/camera/color/image_raw",
+											1, std::bind(&YolactTest::camera_img_cb_, this, _1));
 	}
 
 	void
@@ -32,19 +41,62 @@ public:
 private:
 
 	void
-	yolact_dets_cb(const yolact_ros_msgs::msg::Detections::SharedPtr msg)
+	yolact_dets_cb(const yolact_ros2_msgs::msg::Detections::SharedPtr msg)
 	{
 		detections_received_ = msg->detections;
 	}
 
 	void
-	process_detection(yolact_ros_msgs::msg::Detection detection)
+	camera_img_cb_(const sensor_msgs::msg::Image::SharedPtr msg)
 	{
-		;
+		img_received_ = *msg;
 	}
 
-	rclcpp::Subscription<yolact_ros_msgs::msg::Detections>::SharedPtr yolact_dets_sub_;
-	std::vector<yolact_ros_msgs::msg::Detection>detections_received_;
+	void
+	process_detection(yolact_ros2_msgs::msg::Detection detection)
+	{
+		cv_bridge::CvImagePtr cv_ptr;
+		cv::Mat croppedImage;
+		cv::Mat mask;
+		std::vector<unsigned char> v = detection.mask.mask;
+
+		mask = cv::Mat(detection.mask.height, detection.mask.width, CV_8U);
+		for(int x = 0; x < detection.mask.width; x++)
+		{
+			for(int y = 0; y < detection.mask.height; y++)
+			{
+				if(this->test(detection.mask, x, y))
+					mask.at<unsigned char>(y, x) = 255;
+				else
+					mask.at<unsigned char>(y, x) = 0;
+			}
+		}
+		//Erode the image with 3x3 kernel
+    cv::Mat mask_eroded;
+    cv::erode(mask, mask_eroded, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(50, 50)));
+
+		cv::imshow("Original Mask", mask);
+		cv::waitKey(1);
+		cv::imshow("Eroded Mask", mask_eroded);
+		cv::waitKey(1);
+	}
+
+	bool
+	test(const yolact_ros2_msgs::msg::Mask &mask, size_t x, size_t y)
+  {
+		size_t index, byte_ind, bit_ind;
+
+    index = y * mask.width + x;
+    byte_ind = index / 8;
+    bit_ind = 7 - (index % 8); // bitorder 'big'
+    return mask.mask[byte_ind] & (1 << bit_ind);
+  }
+
+	rclcpp::Subscription<yolact_ros2_msgs::msg::Detections>::SharedPtr yolact_dets_sub_;
+	rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr camera_img_sub_;
+
+	std::vector<yolact_ros2_msgs::msg::Detection>detections_received_;
+	sensor_msgs::msg::Image img_received_;
 };
 
 int

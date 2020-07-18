@@ -21,11 +21,19 @@ find_package(ament_cmake REQUIRED)
 # further dependencies manually.
 
 find_package(rclcpp REQUIRED)
-find_package(yolact_ros_msgs REQUIRED)
+find_package(yolact_ros2_msgs REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
 set(dependencies
   rclcpp
-  yolact_ros_msgs
+  yolact_ros2_msgs
+  cv_bridge
+  sensor_msgs
+)
+
+include_directories(
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 add_executable(yolact_test_node src/yolact_test.cpp)
