@@ -55,10 +55,7 @@ private:
 	void
 	process_detection(yolact_ros2_msgs::msg::Detection detection)
 	{
-		cv_bridge::CvImagePtr cv_ptr;
-		cv::Mat croppedImage;
 		cv::Mat mask;
-		std::vector<unsigned char> v = detection.mask.mask;
 
 		mask = cv::Mat(detection.mask.height, detection.mask.width, CV_8U);
 		for(int x = 0; x < detection.mask.width; x++)
@@ -71,8 +68,10 @@ private:
 					mask.at<unsigned char>(y, x) = 0;
 			}
 		}
+
 		//Erode the image with 3x3 kernel
-    cv::Mat mask_eroded;
+
+		cv::Mat mask_eroded;
     cv::erode(mask, mask_eroded, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(50, 50)));
 
 		cv::imshow("Original Mask", mask);
