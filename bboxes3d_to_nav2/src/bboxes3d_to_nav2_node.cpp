@@ -113,6 +113,7 @@ private:
     // Compose PoseStamped:
 
     pose_stamped_in.header = bboxes_header_;
+    pose_stamped_in.header.stamp = clock_.now();
     pose_stamped_in.pose.position.x = orig_x;
     pose_stamped_in.pose.position.y = orig_y;
     pose_stamped_in.pose.position.z = orig_z;
@@ -126,7 +127,7 @@ private:
 
     try {
       transform = tf2_buffer_.lookupTransform(static_frame_, bboxes_header_.frame_id,
-        bboxes_header_.stamp, tf2::durationFromSec(5.0));
+        pose_stamped_in.header.stamp, tf2::durationFromSec(0.0));
     } catch (tf2::TransformException & ex) {
       RCLCPP_ERROR(this->get_logger(), "Transform error of sensor data: %s, %s\n",
         ex.what(), "quitting callback");
