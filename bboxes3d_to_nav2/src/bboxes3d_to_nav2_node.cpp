@@ -36,7 +36,7 @@ class Bboxes3d2nav2 : public rclcpp::Node
 {
 public:
   Bboxes3d2nav2(const std::string & node_name)
-  : Node(node_name), clock_(RCL_SYSTEM_TIME), tf2_buffer_(std::make_shared<rclcpp::Clock>(clock_)),
+  : Node(node_name), clock_(RCL_ROS_TIME), tf2_buffer_(get_clock()),
   tf2_listener_(tf2_buffer_, true),
   person_saw_(false)
   {
@@ -113,7 +113,7 @@ private:
     // Compose PoseStamped:
 
     pose_stamped_in.header = bboxes_header_;
-    pose_stamped_in.header.stamp = clock_.now();
+    pose_stamped_in.header.stamp = now();
     pose_stamped_in.pose.position.x = orig_x;
     pose_stamped_in.pose.position.y = orig_y;
     pose_stamped_in.pose.position.z = orig_z;
@@ -127,7 +127,7 @@ private:
 
     try {
       transform = tf2_buffer_.lookupTransform(static_frame_, bboxes_header_.frame_id,
-        pose_stamped_in.header.stamp, tf2::durationFromSec(0.0));
+        tf2::TimePointZero);
     } catch (tf2::TransformException & ex) {
       RCLCPP_ERROR(this->get_logger(), "Transform error of sensor data: %s, %s\n",
         ex.what(), "quitting callback");
@@ -136,6 +136,8 @@ private:
 
     tf2::doTransform<geometry_msgs::msg::PoseStamped>(
     pose_stamped_in, pose_stamped, transform);
+
+    pose_stamped.pose.position.z = orig_z;
 
   }
 
