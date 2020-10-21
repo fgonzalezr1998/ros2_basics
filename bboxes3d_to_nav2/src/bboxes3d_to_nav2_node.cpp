@@ -14,7 +14,14 @@
 
 /* Author: Fernando González fergonzaramos@yahoo.es */
 
-
+#include <tf2/convert.h>
+#include <tf2/transform_datatypes.h>
+#include <tf2_sensor_msgs/tf2_sensor_msgs.h>
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
+#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+#include <geometry_msgs/msg/transform_stamped.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <string>
 #include <vector>
@@ -29,7 +36,9 @@ class Bboxes3d2nav2 : public rclcpp::Node
 {
 public:
   Bboxes3d2nav2(const std::string & node_name)
-  : Node(node_name), person_saw_(false)
+  : Node(node_name), clock_(RCL_SYSTEM_TIME), tf2_buffer_(std::make_shared<rclcpp::Clock>(clock_)),
+  tf2_listener_(tf2_buffer_, true),
+  person_saw_(false)
   {
     initParams();
 
@@ -62,9 +71,20 @@ private:
   void
   sendActionGoal(const gb_visual_detection_3d_msgs::msg::BoundingBox3d & bbox)
   {
-    double orig_x, orig_y, orig_z;
+    geometry_msgs::msg::PoseStamped pose_stamped;
 
-    // Get the object psoe at its original frame:
+    getPoseStamped(bbox, pose_stamped);
+  }
+
+  void
+  getPoseStamped(const gb_visual_detection_3d_msgs::msg::BoundingBox3d & bbox,
+    geometry_msgs::msg::PoseStamped & pose_stamped)
+  {
+    double orig_x, orig_y, orig_z;
+    geometry_msgs::msg::TransformStamped transform;
+    geometry_msgs::msg::PoseStamped pose_stamped_in;
+
+    // Get the object pose at its original frame:
 
     orig_x = (bbox.xmin + bbox.xmax) / 2.0;
     orig_y = (bbox.ymin + bbox.ymax) / 2.0;
@@ -72,6 +92,33 @@ private:
 
     RCLCPP_INFO(get_logger(), "Coordinates=(%f, %f, %f)\n",
       orig_x, orig_y, orig_z);
+
+    // Compose PoseStamped:
+
+    pose_stamped_in.header = bboxes_header_;
+    pose_stamped_in.pose.position.x = orig_x;
+    pose_stamped_in.pose.position.y = orig_y;
+    pose_stamped_in.pose.position.z = orig_z;
+
+    pose_stamped_in.pose.orientation.x = 0.0;
+    pose_stamped_in.pose.orientation.y = 0.0;
+    pose_stamped_in.pose.orientation.z = 0.0;
+    pose_stamped_in.pose.orientation.w = 1.0;
+
+    // Transform PoseStamped:
+
+    try {
+      transform = tf2_buffer_.lookupTransform("map", bboxes_header_.frame_id,
+        bboxes_header_.stamp, tf2::durationFromSec(0.0));
+    } catch (tf2::TransformException & ex) {
+      RCLCPP_ERROR(this->get_logger(), "Transform error of sensor data: %s, %s\n",
+        ex.what(), "quitting callback");
+      return;
+    }
+
+    tf2::doTransform<geometry_msgs::msg::PoseStamped>(
+    pose_stamped_in, pose_stamped, transform);
+
   }
 
   bool
@@ -107,6 +154,9 @@ private:
 
   rclcpp::Subscription
   <gb_visual_detection_3d_msgs::msg::BoundingBoxes3d>::SharedPtr yolact_sub_;
+  rclcpp::Clock clock_;
+  tf2_ros::Buffer tf2_buffer_;
+  tf2_ros::TransformListener tf2_listener_;
 
   std::string yolact_topic_;
   std_msgs::msg::Header bboxes_header_;
