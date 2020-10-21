@@ -45,6 +45,9 @@ public:
     yolact_sub_ = this->create_subscription
       <gb_visual_detection_3d_msgs::msg::BoundingBoxes3d>(
       yolact_topic_, 1, std::bind(&Bboxes3d2nav2::yolactCallback, this, _1));
+
+    goal_update_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
+      goal_update_topic_, 1);
   }
 
   void
@@ -55,25 +58,39 @@ public:
 
     if (newPerson(person_found, bbox_detected)) {
       person_saw_ = true;
-      RCLCPP_INFO(get_logger(), "%s\n", "Send action goal!");
       sendActionGoal(bbox_detected);
     } else {
       if (!person_found) {
         person_saw_ = false;
         return;
       }
-      RCLCPP_INFO(get_logger(), "%s\n", "Update goal!");
+
+      upadateGoal(bbox_detected);
     }
     RCLCPP_INFO(get_logger(), "%s\n", "--------------------");
   }
 
 private:
   void
+  upadateGoal(const gb_visual_detection_3d_msgs::msg::BoundingBox3d & bbox)
+  {
+    geometry_msgs::msg::PoseStamped pose_stamped;
+
+    getPoseStamped(bbox, pose_stamped);
+
+    goal_update_pub_->publish(pose_stamped);
+
+    RCLCPP_INFO(get_logger(), "%s\n", "Update goal!");
+  }
+
+  void
   sendActionGoal(const gb_visual_detection_3d_msgs::msg::BoundingBox3d & bbox)
   {
     geometry_msgs::msg::PoseStamped pose_stamped;
 
     getPoseStamped(bbox, pose_stamped);
+
+    RCLCPP_INFO(get_logger(), "%s\n", "Send action goal!");
   }
 
   void
@@ -108,8 +125,8 @@ private:
     // Transform PoseStamped:
 
     try {
-      transform = tf2_buffer_.lookupTransform("map", bboxes_header_.frame_id,
-        bboxes_header_.stamp, tf2::durationFromSec(0.0));
+      transform = tf2_buffer_.lookupTransform(static_frame_, bboxes_header_.frame_id,
+        bboxes_header_.stamp, tf2::durationFromSec(5.0));
     } catch (tf2::TransformException & ex) {
       RCLCPP_ERROR(this->get_logger(), "Transform error of sensor data: %s, %s\n",
         ex.what(), "quitting callback");
@@ -149,16 +166,21 @@ private:
   void
   initParams()
   {
-    yolact_topic_ = "/yolact_ros2_3d/bounding_boxes_3d";
+    yolact_topic_ = "/darknet_ros_3d/bounding_boxes";
+    static_frame_ = "map";
+    goal_update_topic_ = "/goal_update";
   }
 
   rclcpp::Subscription
   <gb_visual_detection_3d_msgs::msg::BoundingBoxes3d>::SharedPtr yolact_sub_;
+
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr goal_update_pub_;
+
   rclcpp::Clock clock_;
   tf2_ros::Buffer tf2_buffer_;
   tf2_ros::TransformListener tf2_listener_;
 
-  std::string yolact_topic_;
+  std::string yolact_topic_, goal_update_topic_, static_frame_;
   std_msgs::msg::Header bboxes_header_;
   std::vector<gb_visual_detection_3d_msgs::msg::BoundingBox3d> bboxes_;
   bool person_saw_;
