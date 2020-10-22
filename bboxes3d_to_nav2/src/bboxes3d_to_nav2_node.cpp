@@ -14,6 +14,7 @@
 
 /* Author: Fernando González fergonzaramos@yahoo.es */
 
+#include <memory>
 #include <tf2/convert.h>
 #include <tf2/transform_datatypes.h>
 #include <tf2_sensor_msgs/tf2_sensor_msgs.h>
@@ -23,6 +24,9 @@
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include "rclcpp_action/rclcpp_action.hpp"
+#include <nav2_msgs/action/navigate_to_pose.hpp>
+#include "rclcpp/time.hpp"
 #include <string>
 #include <vector>
 #include "gb_visual_detection_3d_msgs/msg/bounding_boxes3d.hpp"
@@ -30,13 +34,17 @@
 
 #define HZ 5
 
+using namespace std::chrono_literals;
 using std::placeholders::_1;
+using std::placeholders::_2;
+using GoalHandleNav2= rclcpp_action::ClientGoalHandle
+  <nav2_msgs::action::NavigateToPose>;
 
 class Bboxes3d2nav2 : public rclcpp::Node
 {
 public:
   Bboxes3d2nav2(const std::string & node_name)
-  : Node(node_name), clock_(RCL_ROS_TIME), tf2_buffer_(get_clock()),
+  : Node(node_name), tf2_buffer_(get_clock()),
   tf2_listener_(tf2_buffer_, true),
   person_saw_(false)
   {
@@ -70,7 +78,29 @@ public:
     RCLCPP_INFO(get_logger(), "%s\n", "--------------------");
   }
 
+  void
+  callServer()
+  {
+    goal_action_client_ = rclcpp_action::create_client
+      <nav2_msgs::action::NavigateToPose>(shared_from_this(), "navigate_to_pose");
+    waitForServer();
+  }
+
 private:
+  void
+  waitForServer()
+  {
+    if (!goal_action_client_->wait_for_action_server(std::chrono::seconds(2))) {
+      RCLCPP_ERROR(get_logger(), "Nav2 action server not available");
+    }
+    RCLCPP_INFO(get_logger(), "%s\n", "Nav2 action server available");
+
+    send_goal_options_ = rclcpp_action::Client<nav2_msgs::action::NavigateToPose>::SendGoalOptions();
+
+    send_goal_options_.feedback_callback = std::bind(&Bboxes3d2nav2::feedbackCb, this, _1, _2);
+    send_goal_options_.result_callback = std::bind(&Bboxes3d2nav2::resultCb, this, _1);
+  }
+
   void
   upadateGoal(const gb_visual_detection_3d_msgs::msg::BoundingBox3d & bbox)
   {
@@ -90,6 +120,25 @@ private:
 
     getPoseStamped(bbox, pose_stamped);
 
+    // Compose action:
+
+    auto goal_msg = nav2_msgs::action::NavigateToPose::Goal();
+    goal_msg.pose = pose_stamped;
+    goal_msg.behavior_tree = "MainTree";
+
+    // Send Action:
+
+    auto future_navigation_goal_handle_ = goal_action_client_->async_send_goal(
+      goal_msg, send_goal_options_);
+
+    goal_action_client_->async_send_goal(goal_msg);
+    /*
+    if (!future_navigation_goal_handle_.get()) {
+      RCLCPP_ERROR(get_logger(), "Goal was rejected by server");
+      return;
+    }
+    */
+
     RCLCPP_INFO(get_logger(), "%s\n", "Send action goal!");
   }
 
@@ -106,9 +155,6 @@ private:
     orig_x = (bbox.xmin + bbox.xmax) / 2.0;
     orig_y = (bbox.ymin + bbox.ymax) / 2.0;
     orig_z = 0.0;
-
-    RCLCPP_INFO(get_logger(), "Coordinates=(%f, %f, %f)\n",
-      orig_x, orig_y, orig_z);
 
     // Compose PoseStamped:
 
@@ -131,6 +177,7 @@ private:
     } catch (tf2::TransformException & ex) {
       RCLCPP_ERROR(this->get_logger(), "Transform error of sensor data: %s, %s\n",
         ex.what(), "quitting callback");
+        person_saw_ = false;
       return;
     }
 
@@ -158,6 +205,33 @@ private:
   }
 
   void
+  feedbackCb(
+    GoalHandleNav2::SharedPtr,
+    const std::shared_ptr<const nav2_msgs::action::NavigateToPose::Feedback> feedback)
+  {
+    RCLCPP_INFO(get_logger(), "[%f] meters to Goal", feedback->distance_remaining);
+  }
+
+  void
+  resultCb(const GoalHandleNav2::WrappedResult & result)
+  {
+    switch (result.code) {
+      case rclcpp_action::ResultCode::SUCCEEDED:
+        RCLCPP_WARN(get_logger(), "Goal Reached!");
+        break;
+      case rclcpp_action::ResultCode::ABORTED:
+        RCLCPP_ERROR(get_logger(), "Goal was aborted");
+        return;
+      case rclcpp_action::ResultCode::CANCELED:
+        RCLCPP_ERROR(get_logger(), "Goal was canceled");
+        return;
+      default:
+        RCLCPP_ERROR(get_logger(), "Unknown result code");
+        return;
+    }
+  }
+
+  void
   yolactCallback(const gb_visual_detection_3d_msgs::msg::BoundingBoxes3d::SharedPtr msg)
   {
     // Save the fields of the message
@@ -178,8 +252,14 @@ private:
   <gb_visual_detection_3d_msgs::msg::BoundingBoxes3d>::SharedPtr yolact_sub_;
 
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr goal_update_pub_;
+  rclcpp_action::Client
+    <nav2_msgs::action::NavigateToPose>::SharedPtr goal_action_client_;
 
-  rclcpp::Clock clock_;
+  rclcpp_action::Client
+    <nav2_msgs::action::NavigateToPose>::SendGoalOptions send_goal_options_;
+
+  std::shared_future<GoalHandleNav2::SharedPtr> future_navigation_goal_handle_;
+
   tf2_ros::Buffer tf2_buffer_;
   tf2_ros::TransformListener tf2_listener_;
 
@@ -195,6 +275,8 @@ main(int argc, char ** argv)
   rclcpp::init(argc, argv);
 
   auto node = std::make_shared<Bboxes3d2nav2>("bboxes3d_to_nav2_node");
+
+  node->callServer();
 
   rclcpp::Rate loop_rate(HZ);
   while (rclcpp::ok()) {
