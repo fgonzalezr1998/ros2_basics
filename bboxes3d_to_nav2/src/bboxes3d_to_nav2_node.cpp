@@ -46,13 +46,13 @@ public:
   Bboxes3d2nav2(const std::string & node_name)
   : Node(node_name), tf2_buffer_(get_clock()),
   tf2_listener_(tf2_buffer_, true),
-  person_saw_(false)
+  person_saw_(false), bboxes_received_(false)
   {
     initParams();
 
     yolact_sub_ = this->create_subscription
       <gb_visual_detection_3d_msgs::msg::BoundingBoxes3d>(
-      yolact_topic_, 1, std::bind(&Bboxes3d2nav2::yolactCallback, this, _1));
+      yolact_topic_, 1, std::bind(&Bboxes3d2nav2::bboxesCallback, this, _1));
 
     goal_update_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
       goal_update_topic_, 1);
@@ -72,10 +72,12 @@ public:
         person_saw_ = false;
         return;
       }
-
-      upadateGoal(bbox_detected);
+      if (bboxes_received_) {
+        upadateGoal(bbox_detected);
+      }
     }
     RCLCPP_INFO(get_logger(), "%s\n", "--------------------");
+    bboxes_received_ = false;
   }
 
   void
@@ -92,6 +94,7 @@ private:
   {
     if (!goal_action_client_->wait_for_action_server(std::chrono::seconds(2))) {
       RCLCPP_ERROR(get_logger(), "Nav2 action server not available");
+      return;
     }
     RCLCPP_INFO(get_logger(), "%s\n", "Nav2 action server available");
 
@@ -128,7 +131,7 @@ private:
 
     // Send Action:
 
-    auto future_navigation_goal_handle_ = goal_action_client_->async_send_goal(
+    future_navigation_goal_handle_ = goal_action_client_->async_send_goal(
       goal_msg, send_goal_options_);
 
     goal_action_client_->async_send_goal(goal_msg);
@@ -218,6 +221,7 @@ private:
     switch (result.code) {
       case rclcpp_action::ResultCode::SUCCEEDED:
         RCLCPP_WARN(get_logger(), "Goal Reached!");
+        person_saw_ = false;
         break;
       case rclcpp_action::ResultCode::ABORTED:
         RCLCPP_ERROR(get_logger(), "Goal was aborted");
@@ -232,12 +236,13 @@ private:
   }
 
   void
-  yolactCallback(const gb_visual_detection_3d_msgs::msg::BoundingBoxes3d::SharedPtr msg)
+  bboxesCallback(const gb_visual_detection_3d_msgs::msg::BoundingBoxes3d::SharedPtr msg)
   {
     // Save the fields of the message
 
     bboxes_header_ = msg->header;
     bboxes_ = msg->bounding_boxes;
+    bboxes_received_ = true;
   }
 
   void
@@ -266,7 +271,7 @@ private:
   std::string yolact_topic_, goal_update_topic_, static_frame_;
   std_msgs::msg::Header bboxes_header_;
   std::vector<gb_visual_detection_3d_msgs::msg::BoundingBox3d> bboxes_;
-  bool person_saw_;
+  bool person_saw_, bboxes_received_;
 };
 
 int
