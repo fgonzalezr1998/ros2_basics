@@ -33,7 +33,13 @@ set(dependencies
   "tf2"
 )
 
-install(DIRECTORY launch worlds
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}/
+)
+install(DIRECTORY worlds
+  DESTINATION share/${PROJECT_NAME}/
+)
+install(DIRECTORY urdf
   DESTINATION share/${PROJECT_NAME}/
 )
 

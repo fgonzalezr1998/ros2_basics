@@ -17,6 +17,7 @@
 # Author: Fernando González <fergonzaramos@yahoo.es>
 
 import os
+import sys
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -26,22 +27,31 @@ from launch.substitutions import ThisLaunchFileDir
 from launch.actions import ExecuteProcess
 from launch.substitutions import LaunchConfiguration
 
-TURTLEBOT3_MODEL = "waffle"
+#TURTLEBOT3_MODEL = "waffle"
+TURTLEBOT3_MODEL = "burger"
 
 
 def generate_launch_description():
+
+    # Create the launch contiguration variables:
+
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
-    world_file_name = 'houses/' + TURTLEBOT3_MODEL + '.model'
-    world = os.path.join(get_package_share_directory('tb3_sim'), 'worlds', world_file_name)
     launch_file_dir = os.path.join(get_package_share_directory('tb3_sim'), 'launch')
 
-    return LaunchDescription([
-        ExecuteProcess(
-            cmd=['gazebo', '--verbose', world, '-s', 'libgazebo_ros_init.so'],
-            output='screen'),
+    world_file_name = 'houses/' + TURTLEBOT3_MODEL + '.model'
+    world = os.path.join(get_package_share_directory('tb3_sim'), 'worlds', world_file_name)
 
-        IncludeLaunchDescription(
+    robot_publisher_cmd = IncludeLaunchDescription(
             PythonLaunchDescriptionSource([launch_file_dir, '/robot_state_publisher.launch.py']),
-            launch_arguments={'use_sim_time': use_sim_time}.items(),
-        ),
-    ])
+            launch_arguments={'use_sim_time': use_sim_time}.items())
+
+    gazebo_client_cmd = ExecuteProcess(
+            cmd=['gazebo', '--verbose', world, '-s', 'libgazebo_ros_init.so'],
+            output='screen')
+
+    ld = LaunchDescription()
+
+    ld.add_action(robot_publisher_cmd)
+    ld.add_action(gazebo_client_cmd)
+
+    return ld

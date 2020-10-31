@@ -24,17 +24,17 @@ from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
+TURTLEBOT3_MODEL = "burger"
 
 def generate_launch_description():
 
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
-    urdf_file_name = 'turtlebot3_' + 'waffle' + '.urdf'
-    aunch_file_dir = os.path.join(get_package_share_directory('tb3_sim'), 'urdf', urdf_file_name)
+    urdf_file_name = 'turtlebot3_' + TURTLEBOT3_MODEL + '.urdf'
 
     print('urdf_file_name : {}'.format(urdf_file_name))
 
     urdf = os.path.join(
-        get_package_share_directory('turtlebot3_description'),
+        get_package_share_directory('tb3_sim'),
         'urdf',
         urdf_file_name)
 
