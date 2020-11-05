@@ -330,7 +330,7 @@
           <iyz>0.000</iyz>
           <izz>0.001</izz>
         </inertia>
-        <mass>0.035</mass>
+        <mass>0.35</mass>
       </inertial>
       <collision name="collision">
         <pose>-0.020 0 0.380</pose>
