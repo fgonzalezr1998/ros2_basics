@@ -321,7 +321,7 @@
 
     <link name="camera_rgb_frame">
       <inertial>
-        <pose>0.069 -0.047 0.107 0 0 0</pose>
+        <pose>-0.020 0 0.380 0 0 0</pose>
         <inertia>
           <ixx>0.001</ixx>
           <ixy>0.000</ixy>
@@ -333,7 +333,7 @@
         <mass>0.035</mass>
       </inertial>
       <collision name="collision">
-        <pose>0 0.047 -0.004 0 0 0</pose>
+        <pose>-0.020 0 0.380</pose>
         <geometry>
           <box>
             <size>0.008 0.130 0.022</size>
@@ -341,12 +341,12 @@
         </geometry>
       </collision>
 
-      <pose>0.069 -0.047 0.107 0 0 0</pose>
+      <pose>-0.020 0 0.380 0 0 0</pose>
 
       <sensor name="camera" type="depth">
         <always_on>1</always_on>
         <update_rate>30</update_rate>
-        <pose>0.064 -0.047 1.07 0 0 0</pose>
+        <pose>-0.020 0 0.380 0 0 0</pose>
         <camera name="realsense_depth_camera">
           <image>
             <width>1920</width>
@@ -357,7 +357,7 @@
         <plugin name="camera_driver" filename="libgazebo_ros_camera.so">
           <ros>
           </ros>
-          <camera_name>intel_realsense_r200_depth</camera_name>
+          <camera_name>intel_realsense_r200</camera_name>
           <frame_name>camera_depth_frame</frame_name>
           <min_depth>0.001</min_depth>
           <max_depth>5.0</max_depth>
@@ -365,14 +365,14 @@
       </sensor>
 
       <collision name="collision">
-        <pose>0 0.047 -0.004 0 0 0</pose>
+        <pose>-0.020 0 0.380</pose>
         <geometry>
           <box>
             <size>0.008 0.130 0.022</size>
           </box>
         </geometry>
       </collision>
-      <pose>0.069 -0.047 0.107 0 0 0</pose>
+      <pose>0.069 -0.047 1.07 0 0 0</pose>
     </link>
 
     <joint name="base_joint" type="fixed">
@@ -425,7 +425,7 @@
     <joint name="camera_joint" type="fixed">
       <parent>base_link</parent>
       <child>camera_link</child>
-      <pose>0.064 0.0 0.24 0 0 0</pose>
+      <pose>-0.018 0.0 0.18 0 0 0</pose>
       <axis>
         <xyz>0 0 1</xyz>
       </axis>

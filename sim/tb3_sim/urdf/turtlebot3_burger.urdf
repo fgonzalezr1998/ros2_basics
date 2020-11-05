@@ -194,7 +194,7 @@
   </link>
 
   <joint name="camera_joint" type="fixed">
-    <origin xyz="0.064 0.0 0.24" rpy="0 0 0"/>
+    <origin xyz="-0.020 0.0 0.38" rpy="0 0 0"/>
     <parent link="base_link"/>
     <child link="camera_link"/>
   </joint>
@@ -206,8 +206,9 @@
        <mesh filename="package://turtlebot3_description/meshes/sensors/r200.dae" />
       </geometry>
     </visual>
+    
     <collision>
-      <origin xyz="0.003 0.065 0.007" rpy="0 0 0"/>
+      <origin xyz="0.003 0.0 0.007" rpy="0 0 0"/>
       <geometry>
         <box size="0.012 0.132 0.020"/>
       </geometry>
@@ -239,7 +240,7 @@
   <link name="camera_rgb_optical_frame"/>
 
   <joint name="camera_depth_joint" type="fixed">
-    <origin xyz="0.005 0.028 0.013" rpy="0 0 0"/>
+    <origin xyz="0.005 0.028 0.013" rpy="-1.57 0 -1.57"/>
     <!-- <origin xyz="${r200_cam_rgb_px} ${r200_cam_rgb_py + r200_cam_depth_offset} ${r200_cam_rgb_pz}" rpy="0 0 0"/> -->
     <parent link="camera_link"/>
     <child link="camera_depth_frame"/>
