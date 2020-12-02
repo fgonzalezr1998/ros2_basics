@@ -19,14 +19,17 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(octomap_msgs REQUIRED)
+find_package(octomap REQUIRED)
 
 set(dependencies
   rclcpp
   octomap_msgs
+  octomap
 )
 
 add_executable(octomaps_comparator_node src/comparator.cpp)
 ament_target_dependencies(octomaps_comparator_node ${dependencies})
+target_link_libraries(octomaps_comparator_node octomap)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

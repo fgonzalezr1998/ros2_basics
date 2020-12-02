@@ -1,6 +1,10 @@
-#include <string>
+#include "octomap/octomap.h"
+#include "octomap/OcTree.h"
+#include "octomap/OcTreeKey.h"
+#include "octomap_msgs/conversions.h"
 #include <rclcpp/rclcpp.hpp>
 #include <octomap_msgs/msg/octomap.hpp>
+#include <string>
 
 using std::placeholders::_1;
 
@@ -12,6 +16,9 @@ public:
     Node(node_name)
     {
         initParams();
+
+        kdtree_octree_ = nullptr;
+        erosion_octree_ = nullptr;
 
         octomap_kdtree_sub_ = this->create_subscription<octomap_msgs::msg::Octomap>(
             octomap_kdtee_topic_,
@@ -27,20 +34,33 @@ public:
     void
     step()
     {
-        ;
+        if (kdtree_octree_ == nullptr || erosion_octree_ == nullptr) {
+            return;
+        }
+
+        if (kdtree_octree_->getResolution() != erosion_octree_->getResolution()) {
+            RCLCPP_ERROR(this->get_logger(), "Resolutions are not equals!");
+            return;
+        }
+
+        for (octomap::OcTree::leaf_iterator it = kdtree_octree_->begin_leafs(),
+            end = kdtree_octree_->end_leafs(); it != end; it++)
+        {
+            ;
+        }
     }
 
 private:
     void
     octomap_kdtreeCb(const octomap_msgs::msg::Octomap::SharedPtr msg)
     {
-        kdtree_octree_ = msg;
+        kdtree_octree_ = dynamic_cast<octomap::OcTree*>(octomap_msgs::fullMsgToMap(*msg));
     }
 
     void
     octomap_erosionCb(const octomap_msgs::msg::Octomap::SharedPtr msg)
     {
-        erosion_octree_ = msg;
+        erosion_octree_ = dynamic_cast<octomap::OcTree*>(octomap_msgs::fullMsgToMap(*msg));
     }
 
     void
@@ -56,7 +76,7 @@ private:
     rclcpp::Subscription<octomap_msgs::msg::Octomap>::SharedPtr octomap_kdtree_sub_,
         octomap_erosion_sub_;
 
-    octomap_msgs::msg::Octomap::SharedPtr kdtree_octree_, erosion_octree_;
+    octomap::OcTree *kdtree_octree_, *erosion_octree_;
 
     std::string octomap_kdtee_topic_, octomap_erosion_topic_;
 };
