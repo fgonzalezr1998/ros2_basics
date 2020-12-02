@@ -25,6 +25,9 @@ set(dependencies
   octomap_msgs
 )
 
+add_executable(octomaps_comparator_node src/comparator.cpp)
+ament_target_dependencies(octomaps_comparator_node ${dependencies})
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
