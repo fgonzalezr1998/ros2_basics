@@ -1,9 +1,11 @@
+#include <rclcpp/rclcpp.hpp>
+
+#include <octomap_msgs/msg/octomap.hpp>
 #include "octomap/octomap.h"
 #include "octomap/OcTree.h"
 #include "octomap/OcTreeKey.h"
 #include "octomap_msgs/conversions.h"
-#include <rclcpp/rclcpp.hpp>
-#include <octomap_msgs/msg/octomap.hpp>
+
 #include <string>
 
 using std::placeholders::_1;
