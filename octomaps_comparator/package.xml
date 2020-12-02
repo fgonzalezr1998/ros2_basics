@@ -12,6 +12,7 @@
   <depend>rclcpp</depend>
   <depend>octomap_msgs</depend>
   <depend>octomap</depend>
+  <depend>tf2_ros</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

@@ -20,11 +20,13 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(octomap_msgs REQUIRED)
 find_package(octomap REQUIRED)
+find_package(tf2_ros REQUIRED)
 
 set(dependencies
   rclcpp
   octomap_msgs
   octomap
+  tf2_ros
 )
 
 add_executable(octomaps_comparator_node src/comparator.cpp)

@@ -19,8 +19,8 @@ public:
     {
         initParams();
 
-        kdtree_octree_ = nullptr;
-        erosion_octree_ = nullptr;
+        kdtree_octomap_ = nullptr;
+        erosion_octomap_ = nullptr;
 
         octomap_kdtree_sub_ = this->create_subscription<octomap_msgs::msg::Octomap>(
             octomap_kdtee_topic_,
@@ -36,17 +36,28 @@ public:
     void
     step()
     {
-        if (kdtree_octree_ == nullptr || erosion_octree_ == nullptr) {
+        if (kdtree_octomap_ == nullptr || erosion_octomap_ == nullptr) {
             return;
         }
 
-        if (kdtree_octree_->getResolution() != erosion_octree_->getResolution()) {
+        octomap::OcTree *kdtree_octree, *erosion_octree;
+
+        kdtree_octree = dynamic_cast<octomap::OcTree*>(
+            octomap_msgs::fullMsgToMap(*kdtree_octomap_));
+        erosion_octree = dynamic_cast<octomap::OcTree*>(
+            octomap_msgs::fullMsgToMap(*erosion_octomap_));
+
+        if (kdtree_octree->getResolution() != erosion_octree->getResolution()) {
             RCLCPP_ERROR(this->get_logger(), "Resolutions are not equals!");
             return;
         }
 
-        for (octomap::OcTree::leaf_iterator it = kdtree_octree_->begin_leafs(),
-            end = kdtree_octree_->end_leafs(); it != end; it++)
+        octomap::OcTreeKey key;
+
+        transform_octree(erosion_octree);
+
+        for (octomap::OcTree::leaf_iterator it = kdtree_octree->begin_leafs(),
+            end = kdtree_octree->end_leafs(); it != end; it++)
         {
             ;
         }
@@ -54,15 +65,37 @@ public:
 
 private:
     void
+    transform_octree(octomap::OcTree * erosion_octree)
+    {
+        /*
+         * If frame are different, convert 'erosion_octomap_' to the same frame of 'kdtree_octomap_'
+         */
+
+        if (kdtree_octomap_->header.frame_id == erosion_octomap_->header.frame_id) {
+            return;
+        }
+
+        octomap::point3d p3d;
+        for (octomap::OcTree::leaf_iterator it = erosion_octree->begin_leafs(),
+            end = erosion_octree->end_leafs(); it != end; it++)
+        {
+            p3d = it.getCoordinate();
+
+            // transform the point
+
+        }
+    }
+
+    void
     octomap_kdtreeCb(const octomap_msgs::msg::Octomap::SharedPtr msg)
     {
-        kdtree_octree_ = dynamic_cast<octomap::OcTree*>(octomap_msgs::fullMsgToMap(*msg));
+        kdtree_octomap_ = msg;
     }
 
     void
     octomap_erosionCb(const octomap_msgs::msg::Octomap::SharedPtr msg)
     {
-        erosion_octree_ = dynamic_cast<octomap::OcTree*>(octomap_msgs::fullMsgToMap(*msg));
+        erosion_octomap_= msg;
     }
 
     void
@@ -78,7 +111,7 @@ private:
     rclcpp::Subscription<octomap_msgs::msg::Octomap>::SharedPtr octomap_kdtree_sub_,
         octomap_erosion_sub_;
 
-    octomap::OcTree *kdtree_octree_, *erosion_octree_;
+    octomap_msgs::msg::Octomap::SharedPtr kdtree_octomap_, erosion_octomap_;
 
     std::string octomap_kdtee_topic_, octomap_erosion_topic_;
 };
