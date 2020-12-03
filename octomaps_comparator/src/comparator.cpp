@@ -1,10 +1,16 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include <octomap_msgs/msg/octomap.hpp>
+#include <geometry_msgs/msg/point.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
 #include "octomap/octomap.h"
 #include "octomap/OcTree.h"
 #include "octomap/OcTreeKey.h"
 #include "octomap_msgs/conversions.h"
+
+#include "tf2_ros/buffer_interface.h"
+#include "tf2_ros/buffer.h"
+#include "tf2_ros/transform_listener.h"
 
 #include <string>
 
@@ -15,7 +21,7 @@ class Comparator : public rclcpp::Node
 public:
     Comparator(const std::string & node_name)
     :
-    Node(node_name)
+    Node(node_name), tf_buffer_(get_clock()), tf_listener_(tf_buffer_)
     {
         initParams();
 
@@ -52,19 +58,28 @@ public:
             return;
         }
 
+        octree_aux_ = new octomap::OcTree(kdtree_octomap_->resolution);
+
+        if (!transform_octree(erosion_octree)) {
+            return;
+        }
+
         octomap::OcTreeKey key;
-
-        transform_octree(erosion_octree);
-
         for (octomap::OcTree::leaf_iterator it = kdtree_octree->begin_leafs(),
             end = kdtree_octree->end_leafs(); it != end; it++)
         {
             ;
         }
+
+        free(kdtree_octree);
+        free(erosion_octree);
+        free(octree_aux_);
+
+        RCLCPP_INFO(get_logger(), "Step!\n");
     }
 
 private:
-    void
+    bool
     transform_octree(octomap::OcTree * erosion_octree)
     {
         /*
@@ -72,18 +87,41 @@ private:
          */
 
         if (kdtree_octomap_->header.frame_id == erosion_octomap_->header.frame_id) {
-            return;
+            return true;
         }
 
         octomap::point3d p3d;
+        geometry_msgs::msg::TransformStamped transformStamped;
+        geometry_msgs::msg::Point point;
+
         for (octomap::OcTree::leaf_iterator it = erosion_octree->begin_leafs(),
             end = erosion_octree->end_leafs(); it != end; it++)
         {
             p3d = it.getCoordinate();
 
             // transform the point
+            try{
+                transformStamped = tf_buffer_.lookupTransform(kdtree_octomap_->header.frame_id,
+                    erosion_octomap_->header.frame_id, rclcpp::Time(0));
+            } catch (tf2::TransformException &ex) {
+                RCLCPP_ERROR(get_logger(), "%s", ex.what());
+                return false;
+            }
 
+            point.x = (double)p3d.x();
+            point.y = (double)p3d.y();
+            point.z = (double)p3d.z();
+
+            point = tf_buffer_.transform<geometry_msgs::msg::Point>(point,
+                kdtree_octomap_->header.frame_id);
+
+            octree_aux_->setNodeValue(point.x, point.y, point.z, it->getValue());
         }
+
+        erosion_octree->clear();
+        erosion_octree = octree_aux_;
+
+        return true;
     }
 
     void
@@ -112,8 +150,12 @@ private:
         octomap_erosion_sub_;
 
     octomap_msgs::msg::Octomap::SharedPtr kdtree_octomap_, erosion_octomap_;
+    octomap::OcTree *octree_aux_;
 
     std::string octomap_kdtee_topic_, octomap_erosion_topic_;
+
+    tf2_ros::Buffer tf_buffer_;
+    tf2_ros::TransformListener tf_listener_;
 };
 
 int
