@@ -8,7 +8,6 @@
 #include "octomap/OcTreeKey.h"
 #include "octomap_msgs/conversions.h"
 
-#include "tf2_ros/buffer_interface.h"
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
 
@@ -108,12 +107,9 @@ private:
                 return false;
             }
 
-            point.x = (double)p3d.x();
-            point.y = (double)p3d.y();
-            point.z = (double)p3d.z();
-
-            point = tf_buffer_.transform<geometry_msgs::msg::Point>(point,
-                kdtree_octomap_->header.frame_id);
+            point.x = (double)p3d.x() + transformStamped.transform.translation.x;
+            point.y = (double)p3d.y() + transformStamped.transform.translation.y;
+            point.z = (double)p3d.z() + transformStamped.transform.translation.z;
 
             octree_aux_->setNodeValue(point.x, point.y, point.z, it->getValue());
         }
