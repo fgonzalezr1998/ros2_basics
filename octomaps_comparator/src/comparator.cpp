@@ -44,7 +44,6 @@ public:
         if (kdtree_octomap_ == nullptr || erosion_octomap_ == nullptr) {
             return;
         }
-
         octomap::OcTree *kdtree_octree, *erosion_octree;
 
         kdtree_octree = dynamic_cast<octomap::OcTree*>(
@@ -64,10 +63,18 @@ public:
         }
 
         octomap::OcTreeKey key;
+        octomap::OcTreeNode *node = NULL;
+        int corrects, total;
+        corrects = 0;
+        total = 0;
         for (octomap::OcTree::leaf_iterator it = kdtree_octree->begin_leafs(),
             end = kdtree_octree->end_leafs(); it != end; it++)
         {
-            ;
+            node = erosion_octree->search(it.getKey());
+            if (node != NULL) {
+                corrects++;
+            }
+            total++;
         }
 
         free(kdtree_octree);
@@ -75,6 +82,7 @@ public:
         free(octree_aux_);
 
         RCLCPP_INFO(get_logger(), "Step!\n");
+        RCLCPP_INFO(get_logger(), "Corrects: %d\n", corrects);
     }
 
 private:
