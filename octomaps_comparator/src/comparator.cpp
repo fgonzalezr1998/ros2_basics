@@ -81,7 +81,9 @@ public:
         free(erosion_octree);
         free(octree_aux_);
 
-        RCLCPP_INFO(get_logger(), "Step!\n");
+        RCLCPP_INFO(get_logger(), "%s\n", octomap_kdtee_topic_);
+        RCLCPP_INFO(get_logger(), "%s\n", octomap_erosion_topic_);
+
         RCLCPP_INFO(get_logger(), "Corrects: %d\n", corrects);
     }
 

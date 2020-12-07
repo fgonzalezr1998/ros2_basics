@@ -10,18 +10,24 @@ def generate_launch_description():
     stdout_linebuf_envvar = SetEnvironmentVariable(
         'RCUTILS_CONSOLE_STDOUT_LINE_BUFFERED', '1')
 
-    # Create the node
+    # Create the node:
 
     octomaps_comparator_node = Node(
         node_executable='octomaps_comparator_node',
         package='octomaps_comparator',
         node_name='octomaps_comparator_node',
-        parameters=['kdtree_octomap', 'erosion_octomap'],
-        remappings=[('antiguo', 'nuevo')]
+        parameters=[
+            {'octomap_kdtree_topic': 'octomap_kdtree'},
+            {'octomap_erosion_topic': 'octomap_erosion'}
+        ],
+        remappings=[('antiguo', 'nuevo')],
+        node_namespace=''
     )
 
     ld = LaunchDescription()
 
     ld.add_action(stdout_linebuf_envvar)
+
+    ld.add_action(octomaps_comparator_node)
 
     return ld

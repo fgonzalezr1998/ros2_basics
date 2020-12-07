@@ -29,13 +29,13 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2_sensor_msgs REQUIRED)
 
 set(dependencies
-  rclcpp
-  octomap_msgs
-  octomap
-  tf2
-  tf2_ros
-  geometry_msgs
-  tf2_geometry_msgs
+    rclcpp
+    octomap_msgs
+    octomap
+    tf2
+    tf2_ros
+    geometry_msgs
+    tf2_geometry_msgs
 )
 
 add_executable(octomaps_comparator_node src/comparator.cpp)
@@ -46,6 +46,11 @@ install(TARGETS
     octomaps_comparator_node
     EXPORT export_${PROJECT_NAME}
     DESTINATION lib/${PROJECT_NAME}
+)
+
+install(DIRECTORY
+    launch
+    DESTINATION share/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)
