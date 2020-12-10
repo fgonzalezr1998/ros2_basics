@@ -11,7 +11,7 @@ def generate_launch_description():
         'RCUTILS_LOGGING_USE_STDOUT', '1')
 
     stdout_buffer_envvar = SetEnvironmentVariable(
-        'RCUTILS_LOGGING_BUFFERED_STREAM', '1')
+        'RCUTILS_LOGGING_BUFFERED_STREAM', '0')
 
     # Create the node:
 
@@ -20,10 +20,13 @@ def generate_launch_description():
         package='octomaps_comparator',
         name='octomaps_comparator_node',
         parameters=[
-            {'octomap_kdtree_topic': 'octomap_kdtree'},
-            {'octomap_erosion_topic': 'octomap_erosion'}
+            {'octomap_kdtree_topic': 'yolact_ros2_3d_node_octomaps/output_octomaps'},
+            {'octomap_erosion_topic': 'yolact_ros2_3d/octomaps/dynamics/person'}
         ],
-        remappings=[('antiguo', 'nuevo')],
+        #remappings=[
+        #    ('/yolact_ros2_3d/octomaps/dynamics/person', '/octomap_erosion'),
+        #    ('/yolact_ros2_3d_node_octomaps/output_octomaps', '/octomap_kdtree')
+        #],
         namespace=''
     )
 
