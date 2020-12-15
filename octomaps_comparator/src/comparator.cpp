@@ -107,9 +107,9 @@ private:
         for (octomap::OcTree::leaf_iterator i = erosion_octree->begin_leafs(),
             end = erosion_octree->end_leafs(); i != end; i++)
         {
-            if (std::fabs(it.getX() - i.getX()) <= res / 2.0 ||
-                std::fabs(it.getY() - i.getY()) <= res / 2.0 ||
-                std::fabs(it.getZ() - i.getZ()) <= res / 2.0)
+            if (std::fabs(it.getX() - i.getX()) <= res / 4.0 ||
+                std::fabs(it.getY() - i.getY()) <= res / 4.0 ||
+                std::fabs(it.getZ() - i.getZ()) <= res / 4.0)
             {
                 return true;
             }
