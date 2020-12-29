@@ -1,7 +1,14 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include <octomap_msgs/msg/octomap.hpp>
+
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2/transform_datatypes.h>
+#include <tf2/exceptions.h>
+#include <tf2/convert.h>
+
 #include <geometry_msgs/msg/point.hpp>
+#include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include "octomap/octomap.h"
 #include "octomap/OcTree.h"
@@ -44,12 +51,18 @@ public:
         if (kdtree_octomap_ == nullptr || erosion_octomap_ == nullptr) {
             return;
         }
-        octomap::OcTree *kdtree_octree, *erosion_octree;
+        octomap::OcTree *erosion_octree;
+        octomap::ColorOcTree *kdtree_octree;
 
-        kdtree_octree = dynamic_cast<octomap::OcTree*>(
+        kdtree_octree = dynamic_cast<octomap::ColorOcTree*>(
             octomap_msgs::fullMsgToMap(*kdtree_octomap_));
         erosion_octree = dynamic_cast<octomap::OcTree*>(
             octomap_msgs::fullMsgToMap(*erosion_octomap_));
+
+        if (kdtree_octree == NULL || erosion_octree == NULL) {
+            RCLCPP_ERROR(this->get_logger(), "Message to Map conversion failed!\n");
+            return;
+        }
 
         if (kdtree_octree->getResolution() != erosion_octree->getResolution()) {
             RCLCPP_ERROR(this->get_logger(), "Resolutions are not equals!");
@@ -61,33 +74,116 @@ public:
         if (!transform_octree(erosion_octree)) {
             return;
         }
+        
+        float tp, fp, fn;
 
-        octomap::OcTreeKey key;
-        octomap::OcTreeNode *node = NULL;
+        tp = true_positives(kdtree_octree, erosion_octree);
+        fp = false_positives(kdtree_octree, erosion_octree);
+        fn = false_negatives(kdtree_octree, erosion_octree);
+
+        free(kdtree_octree);
+        free(erosion_octree);
+        free(octree_aux_);
+        
+        fprintf(stdout, "%f;%f;%f\n", tp, fp, fn);
+    }
+
+private:
+    float
+    false_negatives(octomap::ColorOcTree * kdtree_octree, octomap::OcTree * erosion_octree)
+    {
         int corrects, total;
+
         corrects = 0;
         total = 0;
-        for (octomap::OcTree::leaf_iterator it = kdtree_octree->begin_leafs(),
+        for (octomap::ColorOcTree::leaf_iterator it = kdtree_octree->begin_leafs(),
             end = kdtree_octree->end_leafs(); it != end; it++)
         {
-            node = erosion_octree->search(it.getKey());
-            if (node != NULL) {
+            if (!node_exists(erosion_octree, it)) {
                 corrects++;
             }
             total++;
         }
 
-        free(kdtree_octree);
-        free(erosion_octree);
-        free(octree_aux_);
-
-        RCLCPP_INFO(get_logger(), "%s\n", octomap_kdtee_topic_);
-        RCLCPP_INFO(get_logger(), "%s\n", octomap_erosion_topic_);
-
-        RCLCPP_INFO(get_logger(), "Corrects: %d\n", corrects);
+        return (float)corrects * 100.0 / (float)total;
     }
 
-private:
+    float
+    false_positives(octomap::ColorOcTree * kdtree_octree, octomap::OcTree * erosion_octree)
+    {
+        int corrects, total;
+
+        corrects = 0;
+        total = 0;
+        for (octomap::OcTree::leaf_iterator it = erosion_octree->begin_leafs(),
+            end = erosion_octree->end_leafs(); it != end; it++)
+        {
+            if (!node_exists(kdtree_octree, it)) {
+                corrects++;
+            }
+            total++;
+        }
+
+        return (float)corrects * 100.0 / (float)total;
+    }
+
+    float
+    true_positives(octomap::ColorOcTree * kdtree_octree, octomap::OcTree * erosion_octree)
+    {
+        int corrects, total;
+
+        corrects = 0;
+        total = 0;
+        for (octomap::ColorOcTree::leaf_iterator it = kdtree_octree->begin_leafs(),
+            end = kdtree_octree->end_leafs(); it != end; it++)
+        {
+            if (node_exists(erosion_octree, it)) {
+                corrects++;
+            }
+            total++;
+        }
+
+        return (float)corrects * 100.0 / (float)total;
+    }
+
+    bool
+    node_exists(octomap::OcTree * erosion_octree, const octomap::ColorOcTree::leaf_iterator & it)
+    {
+        double res = erosion_octree->getResolution();
+
+        for (octomap::OcTree::leaf_iterator i = erosion_octree->begin_leafs(),
+            end = erosion_octree->end_leafs(); i != end; i++)
+        {
+            if (std::fabs(it.getX() - i.getX()) <= res / 4.0 ||
+                std::fabs(it.getY() - i.getY()) <= res / 4.0 ||
+                std::fabs(it.getZ() - i.getZ()) <= res / 4.0)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    bool
+    node_exists(octomap::ColorOcTree * kdtree_octree, const octomap::OcTree::leaf_iterator & it)
+    {
+        double res = kdtree_octree->getResolution();
+
+        for (octomap::ColorOcTree::leaf_iterator i = kdtree_octree->begin_leafs(),
+            end = kdtree_octree->end_leafs(); i != end; i++)
+        {
+            if (std::fabs(it.getX() - i.getX()) <= res / 4.0 ||
+                std::fabs(it.getY() - i.getY()) <= res / 4.0 ||
+                std::fabs(it.getZ() - i.getZ()) <= res / 4.0)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     bool
     transform_octree(octomap::OcTree * erosion_octree)
     {
@@ -102,11 +198,16 @@ private:
         octomap::point3d p3d;
         geometry_msgs::msg::TransformStamped transformStamped;
         geometry_msgs::msg::Point point;
+        geometry_msgs::msg::PointStamped ps, ps_out;
 
         for (octomap::OcTree::leaf_iterator it = erosion_octree->begin_leafs(),
             end = erosion_octree->end_leafs(); it != end; it++)
         {
             p3d = it.getCoordinate();
+
+            ps.header.frame_id = erosion_octomap_->header.frame_id;
+            ps.header.stamp = this->now();
+            ps.point.x = p3d.x(); ps.point.y = p3d.y(); ps.point.z = p3d.z();
 
             // transform the point
             try{
@@ -117,14 +218,16 @@ private:
                 return false;
             }
 
-            point.x = (double)p3d.x() + transformStamped.transform.translation.x;
-            point.y = (double)p3d.y() + transformStamped.transform.translation.y;
-            point.z = (double)p3d.z() + transformStamped.transform.translation.z;
+            tf2::doTransform(ps, ps_out, transformStamped);
 
-            octree_aux_->setNodeValue(point.x, point.y, point.z, it->getValue());
+
+            octree_aux_->setNodeValue(ps_out.point.x, ps_out.point.y,
+                ps_out.point.z, it->getValue());
+
+            octree_aux_->updateInnerOccupancy();
         }
 
-        erosion_octree->clear();
+        // erosion_octree->clear();
         erosion_octree = octree_aux_;
 
         return true;
@@ -145,8 +248,10 @@ private:
     void
     initParams()
     {
-        this->declare_parameter("octomap_kdtree_topic", "octomap_kdtree");
-        this->declare_parameter("octomap_erosion_topic", "octomap_erosion");
+        this->declare_parameter("octomap_kdtree_topic",
+            "yolact_ros2_3d_node_octomaps/output_octomaps");
+        this->declare_parameter("octomap_erosion_topic",
+            "yolact_ros2_3d/octomaps/dynamics/person");
 
         this->get_parameter("octomap_kdtree_topic", octomap_kdtee_topic_);
         this->get_parameter("octomap_erosion_topic", octomap_erosion_topic_);
@@ -171,12 +276,14 @@ main(int argc, char ** argv)
 
     auto comparator_node = std::make_shared<Comparator>("octomaps_comparator_node");
 
-    rclcpp::Rate loop_rate(10);
+    rclcpp::Rate loop_rate(20);
     while(rclcpp::ok()) {
         comparator_node->step();
         rclcpp::spin_some(comparator_node);
         loop_rate.sleep();
     }
+
+    rclcpp::shutdown();
 
     exit(EXIT_SUCCESS);
 }

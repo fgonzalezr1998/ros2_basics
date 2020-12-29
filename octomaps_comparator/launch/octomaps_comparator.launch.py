@@ -17,10 +17,13 @@ def generate_launch_description():
         package='octomaps_comparator',
         node_name='octomaps_comparator_node',
         parameters=[
-            {'octomap_kdtree_topic': 'octomap_kdtree'},
-            {'octomap_erosion_topic': 'octomap_erosion'}
+            {'octomap_kdtree_topic': 'yolact_ros2_3d_node_octomaps/output_octomaps'},
+            {'octomap_erosion_topic': 'yolact_ros2_3d/octomaps/dynamics/person'}
         ],
-        remappings=[('antiguo', 'nuevo')],
+        #remappings=[
+        #    ('/yolact_ros2_3d/octomaps/dynamics/person', '/octomap_erosion'),
+        #    ('/yolact_ros2_3d_node_octomaps/output_octomaps', '/octomap_kdtree')
+        #],
         node_namespace=''
     )
 
