@@ -75,7 +75,66 @@ public:
             return;
         }
 
+        expand_octrees(kdtree_octree, erosion_octree);
+        
+        float tp, fp;
+        float fn;
+
+        tp = true_positives(kdtree_octree, erosion_octree);
+        fp = false_positives(kdtree_octree, erosion_octree);
+        fn = false_negatives(kdtree_octree, erosion_octree);
+
+        free(kdtree_octree);
+        free(erosion_octree);
+        free(octree_aux_);
+        
+        fprintf(stdout, "%f;%f;%f\n", tp, fp, fn);
+    }
+
+private:
+    float
+    false_negatives(octomap::ColorOcTree * kdtree_octree, octomap::OcTree * erosion_octree)
+    {
         int corrects, total;
+
+        corrects = 0;
+        total = 0;
+        for (octomap::ColorOcTree::leaf_iterator it = kdtree_octree->begin_leafs(),
+            end = kdtree_octree->end_leafs(); it != end; it++)
+        {
+            if (!node_exists(erosion_octree, it)) {
+                corrects++;
+            }
+            total++;
+        }
+
+        return (float)corrects * 100.0 / (float)total;
+    }
+
+    float
+    false_positives(octomap::ColorOcTree * kdtree_octree, octomap::OcTree * erosion_octree)
+    {
+        int corrects, total;
+
+        corrects = 0;
+        total = 0;
+        for (octomap::OcTree::leaf_iterator it = erosion_octree->begin_leafs(),
+            end = erosion_octree->end_leafs(); it != end; it++)
+        {
+            if (!node_exists(kdtree_octree, it)) {
+                corrects++;
+            }
+            total++;
+        }
+
+        return (float)corrects * 100.0 / (float)total;
+    }
+
+    float
+    true_positives(octomap::ColorOcTree * kdtree_octree, octomap::OcTree * erosion_octree)
+    {
+        int corrects, total;
+
         corrects = 0;
         total = 0;
         for (octomap::ColorOcTree::leaf_iterator it = kdtree_octree->begin_leafs(),
@@ -87,25 +146,35 @@ public:
             total++;
         }
 
-        free(kdtree_octree);
-        free(erosion_octree);
-        free(octree_aux_);
-
-        RCLCPP_INFO(get_logger(), "Corrects: %d / %d", corrects, total);
-        RCLCPP_INFO(get_logger(), "Percentage: %f\n", (float)corrects * 100.0 / (float)total);
+        return (float)corrects * 100.0 / (float)total;
     }
 
-private:
     bool
-    node_exists(octomap::OcTree * erosion_octree, octomap::ColorOcTree::leaf_iterator it)
+    node_exists(octomap::OcTree * erosion_octree, const octomap::ColorOcTree::leaf_iterator & it)
     {
-        double res;
+        double res = erosion_octree->getResolution();
 
-        res = erosion_octree->getResolution();
-
-        //RCLCPP_INFO(get_logger(), "Procesando!");
         for (octomap::OcTree::leaf_iterator i = erosion_octree->begin_leafs(),
             end = erosion_octree->end_leafs(); i != end; i++)
+        {
+            if (std::fabs(it.getX() - i.getX()) <= res / 4.0 ||
+                std::fabs(it.getY() - i.getY()) <= res / 4.0 ||
+                std::fabs(it.getZ() - i.getZ()) <= res / 4.0)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    bool
+    node_exists(octomap::ColorOcTree * kdtree_octree, const octomap::OcTree::leaf_iterator & it)
+    {
+        double res = kdtree_octree->getResolution();
+
+        for (octomap::ColorOcTree::leaf_iterator i = kdtree_octree->begin_leafs(),
+            end = kdtree_octree->end_leafs(); i != end; i++)
         {
             if (std::fabs(it.getX() - i.getX()) <= res / 4.0 ||
                 std::fabs(it.getY() - i.getY()) <= res / 4.0 ||
@@ -165,6 +234,34 @@ private:
         erosion_octree = octree_aux_;
 
         return true;
+    }
+
+    void expand_octrees(
+        octomap::ColorOcTree * kdtree_octree, octomap::OcTree * erosion_octree)
+    {
+        octomap::ColorOcTree *kdtree_aux;
+        double res = kdtree_octree->getResolution();
+
+        kdtree_aux = new octomap::ColorOcTree(res);
+
+        for (double x = -10.0; x <= 10.0; x+= res) {
+            for (double y = -10.0; y <= 10.0; y+= res) {
+                for (double z = -5.0; z <= 10.0; z+= res) {
+                    kdtree_aux->updateNode(x, y, z, false);
+                    kdtree_aux->updateInnerOccupancy();
+                }
+            }
+        }
+
+        octomap::OcTreeNode *node;
+        for (octomap::ColorOcTree::leaf_iterator i = kdtree_octree->begin_leafs(),
+            end = kdtree_octree->end_leafs(); i != end; i++)
+        {
+            node = kdtree_octree->search(i.getKey());    
+            kdtree_aux->updateNode(i.getKey(), true);
+        }
+
+        kdtree_octree = kdtree_aux;
     }
 
     void
