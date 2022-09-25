@@ -8,6 +8,7 @@
 #include <geometry_msgs/msg/twist.hpp>
 #include <string>
 #include <memory>
+#include <math.h>
 
 using std::placeholders::_1;
 using kobuki_ros_interfaces::msg::BumperEvent;
@@ -22,9 +23,10 @@ enum StateType {
 class BumpAndGo : public rclcpp::Node
 {
 public:
-  BumpAndGo(const std::string & node_name)
-  : Node(node_name), state_(STATE_FORWARD)
+  explicit BumpAndGo(const std::string & node_name)
+  : Node(node_name), clock_(RCL_SYSTEM_TIME), state_(STATE_FORWARD)
   {
+    turning_vel_ = 0.0;
     bumper_sub_ = this->create_subscription<kobuki_ros_interfaces::msg::BumperEvent>(
       "/events/bumper_event", rclcpp::QoS(1).best_effort(),
       std::bind(&BumpAndGo::bumperCb, this, _1));
@@ -54,20 +56,60 @@ private:
   void
   run_state_action()
   {
-    if (state_ == STATE_FORWARD) {
-
+    Twist cmd_vel;
+    switch (state_)
+    {
+      case STATE_FORWARD:
+        cmd_vel.linear.x = 0.08;
+        break;
+      case STATE_BACKWARD:
+        cmd_vel.linear.x = -0.08;
+        break;
+      case STATE_TURNING:
+        cmd_vel.angular.z = turning_vel_;
+      default:
+        break;
     }
   }
 
   void
   evaluate_transition()
   {
-    ;
+    // If a bumper was pressed...
+
+    if (bumper_state_->state == BumperEvent::PRESSED) {
+      state_ = STATE_BACKWARD;
+      ts_ = clock_.now();
+      if (bumper_state_->bumper == BumperEvent::CENTER
+        || bumper_state_->bumper == BumperEvent::RIGHT)
+      {
+        turning_vel_ = (float)(M_PI / 8.0);
+        
+      } else {
+        turning_vel_ = -(float)(M_PI / 8.0);
+      }
+    } else {
+      // If no bumpers pressed...
+
+      if (state_ == STATE_BACKWARD) {
+        if ((clock_.now() - ts_).seconds() >= 2.5) {
+          ts_ = clock_.now();
+          state_ = STATE_TURNING;
+        }
+      } else if (state_ == STATE_TURNING) {
+        if ((clock_.now() - ts_).seconds() >= 4.0) {
+          state_ = STATE_FORWARD;
+        }
+      }
+    }
   }
 
   rclcpp::Subscription<BumperEvent>::SharedPtr bumper_sub_;
   rclcpp::Publisher<Twist>::SharedPtr vel_pub_;
   BumperEvent::SharedPtr bumper_state_;
+  rclcpp::Time ts_;
+  rclcpp::Clock clock_;
+  float turning_vel_;
   StateType state_;
 };
 
