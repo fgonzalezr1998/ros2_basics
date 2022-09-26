@@ -8,7 +8,6 @@
 #include <geometry_msgs/msg/twist.hpp>
 #include <string>
 #include <memory>
-#include <math.h>
 
 using std::placeholders::_1;
 using kobuki_ros_interfaces::msg::BumperEvent;
@@ -26,10 +25,10 @@ public:
   explicit BumpAndGo(const std::string & node_name)
   : Node(node_name), clock_(RCL_SYSTEM_TIME), state_(STATE_FORWARD)
   {
-    turning_vel_ = 0.0;
+    load_params();
     bumper_sub_ = this->create_subscription<kobuki_ros_interfaces::msg::BumperEvent>(
       "/events/bumper", rclcpp::QoS(1).best_effort(),
-      std::bind(&BumpAndGo::bumperCb, this, _1));
+      std::bind(&BumpAndGo::bumper_cb, this, _1));
     vel_pub_ = this->create_publisher<Twist>(
       "/commands/velocity", rclcpp::QoS(1).reliable());
   }
@@ -44,9 +43,19 @@ public:
 
 private:
   void
-  bumperCb(const kobuki_ros_interfaces::msg::BumperEvent::SharedPtr msg)
+  bumper_cb(const kobuki_ros_interfaces::msg::BumperEvent::SharedPtr msg)
   {
     bumper_state_ = msg;
+  }
+
+  void
+  load_params()
+  {
+    fw_vel_ = (float) this->declare_parameter("forward_vel", 0.08);
+    bw_vel_ = (float) this->declare_parameter("backward_vel", -0.08);
+    turning_vel_ = (float) this->declare_parameter("turning_vel", 0.24);
+    bw_time_ = (float) this->declare_parameter("backward_time", 2.5);
+    turning_time_ = (float) this->declare_parameter("turning_time", 4.0);
   }
 
   void
@@ -57,13 +66,13 @@ private:
     switch (state_)
     {
       case STATE_FORWARD:
-        cmd_vel.linear.x = 0.1;
+        cmd_vel.linear.x = fw_vel_;
         break;
       case STATE_BACKWARD:
-        cmd_vel.linear.x = -0.08;
+        cmd_vel.linear.x = bw_vel_;
         break;
       case STATE_TURNING:
-        cmd_vel.angular.z = turning_vel_;
+        cmd_vel.angular.z = current_angular_vel_;
       default:
         break;
     }
@@ -81,21 +90,21 @@ private:
       if (bumper_state_->bumper == BumperEvent::CENTER
         || bumper_state_->bumper == BumperEvent::RIGHT)
       {
-        turning_vel_ = (float)(M_PI / 8.0);
+        current_angular_vel_ = turning_vel_;
         
       } else {
-        turning_vel_ = -(float)(M_PI / 8.0);
+        current_angular_vel_ = -turning_vel_;
       }
     } else {
       // If no bumpers pressed...
 
       if (state_ == STATE_BACKWARD) {
-        if ((clock_.now() - ts_).seconds() >= 2.5) {
+        if ((clock_.now() - ts_).seconds() >= bw_time_) {
           ts_ = clock_.now();
           state_ = STATE_TURNING;
         }
       } else if (state_ == STATE_TURNING) {
-        if ((clock_.now() - ts_).seconds() >= 4.0) {
+        if ((clock_.now() - ts_).seconds() >= turning_time_) {
           state_ = STATE_FORWARD;
         }
       }
@@ -107,7 +116,7 @@ private:
   BumperEvent::SharedPtr bumper_state_;
   rclcpp::Time ts_;
   rclcpp::Clock clock_;
-  float turning_vel_;
+  float fw_vel_, bw_vel_, turning_vel_, current_angular_vel_, bw_time_, turning_time_;
   StateType state_;
 };
 

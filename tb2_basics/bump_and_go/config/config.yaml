@@ -1,0 +1,7 @@
+bump_and_go_node:
+  ros__parameters:
+    forward_vel: 0.1
+    backward_vel: -0.08
+    turning_vel: 0.4
+    backward_time: 2.5
+    turning_time: 4.0
