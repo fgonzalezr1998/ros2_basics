@@ -28,22 +28,18 @@ public:
   {
     turning_vel_ = 0.0;
     bumper_sub_ = this->create_subscription<kobuki_ros_interfaces::msg::BumperEvent>(
-      "/events/bumper_event", rclcpp::QoS(1).best_effort(),
+      "/events/bumper", rclcpp::QoS(1).best_effort(),
       std::bind(&BumpAndGo::bumperCb, this, _1));
     vel_pub_ = this->create_publisher<Twist>(
-      "/commands/velocity", rclcpp::QoS(1).best_effort());
+      "/commands/velocity", rclcpp::QoS(1).reliable());
   }
 
   void
   step()
   {
-    if (bumper_state_ == nullptr)
-      return;
-    RCLCPP_INFO(
-      this->get_logger(), "Bumper: %d, State: %d", bumper_state_->bumper, bumper_state_->state);
-
     run_state_action();
-    evaluate_transition();
+    if (bumper_state_ != nullptr)
+      evaluate_transition();
   }
 
 private:
@@ -57,10 +53,11 @@ private:
   run_state_action()
   {
     Twist cmd_vel;
+
     switch (state_)
     {
       case STATE_FORWARD:
-        cmd_vel.linear.x = 0.08;
+        cmd_vel.linear.x = 0.1;
         break;
       case STATE_BACKWARD:
         cmd_vel.linear.x = -0.08;
@@ -70,6 +67,7 @@ private:
       default:
         break;
     }
+    vel_pub_->publish(cmd_vel);
   }
 
   void
