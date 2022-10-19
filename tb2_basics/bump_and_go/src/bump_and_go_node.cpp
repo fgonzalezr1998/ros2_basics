@@ -91,7 +91,6 @@ private:
         || bumper_state_->bumper == BumperEvent::RIGHT)
       {
         current_angular_vel_ = turning_vel_;
-        
       } else {
         current_angular_vel_ = -turning_vel_;
       }
