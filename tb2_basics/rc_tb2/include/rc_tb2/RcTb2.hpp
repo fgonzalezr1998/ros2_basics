@@ -14,9 +14,12 @@
 
 #include <string>
 #include <exception>
+#include <sensor_msgs/msg/joy.hpp>
 
 #ifndef RC_TB2__RCTB2_HPP_
 #define RC_TB2__RCTB2_HPP_
+
+using sensor_msgs::msg::Joy;
 
 namespace rc_tb2
 {
@@ -24,32 +27,49 @@ namespace rc_tb2
 /*!
  * @brief Remote Controller Type
  */
-typedef enum RCType {
+typedef enum RcTypes {
   XBOX = 1,
   PS4,
-} RCType;
+} RcTypes;
 
 typedef struct RcType RcType;
 typedef struct JoystickType JoystickType;
 typedef struct ButtonsType ButtonsType;
+
+/**
+ * @brief Represents the four buttons located
+ * in the right side of the remote
+ */
 struct ButtonsType {
-  bool up;
-  bool right;
-  bool left;
-  bool bottom;
+  bool up;            /**< bool: true if pressed, false if released */
+  bool right;         /**< bool: true if pressed, false if released */
+  bool left;          /**< bool: true if pressed, false if released */
+  bool bottom;        /**< bool: true if pressed, false if released */
 };
+
+/**
+ * @brief Represents the position of a Joy Stick
+ * based on a coordinates system (x, y)
+ */
 struct JoystickType {
-  float x;
-  float y;
+  float x;            /**< float: Between -1.0 and 1.0 */
+  float y;            /**< float: Between -1.0 and 1.0 */
 };
+
+/**
+ * @brief Represents all the buttons and controls of a remote control
+ * 
+ */
 struct RcType {
-  JoystickType joystick_l;
-  JoystickType joystick_r;
-  bool lt;
-  bool rt;
-  bool h_arrow;
-  bool v_arrow;
-  ButtonsType buttons;
+  JoystickType joystick_l;  /**< oystick left */
+  JoystickType joystick_r;  /**< oystick right */
+  float lt;                 /**< Trigger left. 1.0: fully released. -1.0: fully pressed*/
+  float rt;                 /**< Trigger left. 1.0: fully released. -1.0: fully pressed*/
+  bool lb;                  /**< Left Button: true if pressed, false if released */
+  bool rb;                  /**< Right Button: true if pressed, false if released */
+  bool h_arrow;             /**< Horizontal arrow. true if pressed, false if released */
+  bool v_arrow;             /**< Horizontal arrow. true if pressed, false if released */
+  ButtonsType buttons;      /**< Buttons */
 };
 
 /*!
@@ -78,13 +98,32 @@ public:
   /*!
    * @brief Constructor
    *
-   * @param rc_type: const RCType &. Type of remote controller (XBOX or PS4)
+   * @param rc_type: Type of remote controller (XBOX or PS4)
    * 
-   * @throw cTb2Exception::RcTb2Exception
+   * @throw RcTb2Exception
    */
-  RcTb2(const RCType & rc_type);
+  RcTb2(const RcTypes & rc_type);
+
+  /**
+   * @brief Set the last remote controller state with the received data
+   * 
+   * @param joy_msg Joy message
+   */
+  void setRcData(const Joy & joy_msg);
+
+  /**
+   * @brief Get the last RC Data
+   * 
+   * @return RcType: The last Remote Controller data
+   * 
+   * @throw RcTb2Exception in case there's no data yet
+   */
+  RcType getRcData();
 private:
-  RCType rc_type_;
+  RcTypes rc_type_;
+  std::unique_ptr<RcType> last_rc_data_;
+
+  void setXboxRcData(const Joy & joy_msg, RcType * rc_data);
 };
 }
 

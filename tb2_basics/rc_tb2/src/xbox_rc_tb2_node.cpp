@@ -19,6 +19,8 @@
 using sensor_msgs::msg::Joy;
 using std::placeholders::_1;
 
+#define HZ 5
+
 /**
  * @mainpage ROS2 package to be able to move a Turtlebot 2 robot
  * ROS2 package to be able to move a Turtlebot 2 robot using an Xbox
@@ -39,21 +41,36 @@ public:
   Tb2Controller(const std::string & node_name)
   : Node(node_name)
   {
-    rc_tb2_ = std::make_unique<rc_tb2::RcTb2>(rc_tb2::XBOX);
+    rc_tb2_ = std::make_unique<rc_tb2::RcTb2>(rc_tb2::RcTypes::XBOX);
     joy_sub_ = this->create_subscription<Joy>("/joy",
       rclcpp::QoS(1).best_effort(),
       std::bind(&Tb2Controller::joyCallback_, this, _1)
     );
   }
+
+  void
+  update()
+  {
+    rc_tb2::RcType rc_data;
+
+    try {
+      rc_data = rc_tb2_->getRcData();
+    } catch(rc_tb2::RcTb2Exception & e) {
+      e.what();
+      return;
+    }
+
+    RCLCPP_INFO(this->get_logger(), "%d", rc_data.buttons.left);
+  }
 private:
   void
   joyCallback_(const Joy::SharedPtr msg)
   {
-    ;
+    rc_tb2_->setRcData(*msg);
   }
 
-  std::unique_ptr<rc_tb2::RcTb2> rc_tb2_; // Member for handling the remote
-  rclcpp::Subscription<Joy>::SharedPtr joy_sub_;     // Joy Subscriber
+  std::unique_ptr<rc_tb2::RcTb2> rc_tb2_;         // Member for handling the remote
+  rclcpp::Subscription<Joy>::SharedPtr joy_sub_;  // Joy Subscriber
 };
 
 int
@@ -61,4 +78,11 @@ main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
   auto node = std::make_shared<Tb2Controller>("xbox_rc_tb2_node");
+
+  rclcpp::Rate loop_rate(HZ);
+  while(rclcpp::ok()) {
+    rclcpp::spin_some(node->get_node_base_interface());
+    node->update();
+    loop_rate.sleep();
+  }
 }
