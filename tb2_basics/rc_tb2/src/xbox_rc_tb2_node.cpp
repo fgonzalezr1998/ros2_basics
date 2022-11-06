@@ -13,11 +13,14 @@
 #include <rclcpp/rclcpp.hpp>
 #include <string>
 #include <memory>
+#include <math.h>
 #include <sensor_msgs/msg/joy.hpp>
+#include <geometry_msgs/msg/twist.hpp>
 #include "rc_tb2/RcTb2.hpp"
 
 using sensor_msgs::msg::Joy;
 using std::placeholders::_1;
+using geometry_msgs::msg::Twist;
 
 #define HZ 5
 
@@ -52,6 +55,7 @@ public:
   update()
   {
     rc_tb2::RcType rc_data;
+    Twist vel_msg;
 
     try {
       rc_data = rc_tb2_->getRcData();
@@ -60,9 +64,24 @@ public:
       return;
     }
 
-    RCLCPP_INFO(this->get_logger(), "%d", rc_data.buttons.left);
+    composeVelMsg(rc_data, &vel_msg);
+
+    RCLCPP_INFO(this->get_logger(), "Linear: %f | Angular: %f\n",
+      vel_msg.linear.x, vel_msg.angular.z);
   }
 private:
+  void
+  composeVelMsg(rc_tb2::RcType rc, Twist * msg)
+  {
+    // Linear vel
+
+    msg->linear.x = rc.joystick_l.x * MAX_LINEAR_VEL;
+
+    // Angular vel
+
+    msg->angular.z = rc.joystick_r.y * MAX_ANGULAR_VEL;
+  }
+
   void
   joyCallback_(const Joy::SharedPtr msg)
   {
@@ -71,6 +90,9 @@ private:
 
   std::unique_ptr<rc_tb2::RcTb2> rc_tb2_;         // Member for handling the remote
   rclcpp::Subscription<Joy>::SharedPtr joy_sub_;  // Joy Subscriber
+
+  const float MAX_LINEAR_VEL = 0.5;
+  const float MAX_ANGULAR_VEL = M_PI / 3.0;
 };
 
 int

@@ -61,8 +61,8 @@ struct JoystickType {
  * 
  */
 struct RcType {
-  JoystickType joystick_l;  /**< oystick left */
-  JoystickType joystick_r;  /**< oystick right */
+  JoystickType joystick_l;  /**< Joystick left */
+  JoystickType joystick_r;  /**< Joystick right */
   float lt;                 /**< Trigger left. 1.0: fully released. -1.0: fully pressed*/
   float rt;                 /**< Trigger left. 1.0: fully released. -1.0: fully pressed*/
   bool lb;                  /**< Left Button: true if pressed, false if released */
