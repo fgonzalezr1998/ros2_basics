@@ -15,11 +15,17 @@
 #include <string>
 #include <exception>
 #include <sensor_msgs/msg/joy.hpp>
+#include <stdio.h>
+#include "rc_actions/RcActions.hpp"
 
 #ifndef RC_TB2__RCTB2_HPP_
 #define RC_TB2__RCTB2_HPP_
 
 using sensor_msgs::msg::Joy;
+using rc_actions::Action_t;
+using rc_actions::Actions_e;
+using rc_actions::Trigger_t;
+using rc_actions::RunCmd_t;
 
 namespace rc_tb2
 {
@@ -110,6 +116,8 @@ public:
    * @param joy_msg Joy message
    */
   void setRcData(const Joy & joy_msg);
+
+  template <typename T> void setAction(Trigger_t trigger, T action);
 
   /**
    * @brief Get the last RC Data

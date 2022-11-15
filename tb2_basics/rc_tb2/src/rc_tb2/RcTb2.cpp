@@ -47,6 +47,12 @@ namespace rc_tb2
     last_rc_data_ = std::make_unique<RcType>(rc_data);
   }
 
+  template<> void RcTb2::setAction(Trigger_t trigger, RunCmd_t action)
+  {
+    // TODO: Modify this!
+    (void)system(action.cmd.c_str());
+  }
+
   RcType
   RcTb2::getRcData()
   {

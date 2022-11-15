@@ -49,6 +49,16 @@ public:
       rclcpp::QoS(1).best_effort(),
       std::bind(&Tb2Controller::joyCallback_, this, _1)
     );
+    rc_actions::Trigger_t trigger = {
+      .button = "lt",
+      .value = true
+    };
+
+    rc_actions::RunCmd_t action = {
+      .cmd = "echo hello world"
+    };
+
+    rc_tb2_->setAction<rc_actions::RunCmd_t>(trigger, action);
   }
 
   void
