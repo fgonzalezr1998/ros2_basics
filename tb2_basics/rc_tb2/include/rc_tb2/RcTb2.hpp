@@ -14,6 +14,8 @@
 
 #include <string>
 #include <exception>
+#include <vector>
+#include <memory>
 #include <sensor_msgs/msg/joy.hpp>
 #include <stdio.h>
 #include "rc_actions/RcActions.hpp"
@@ -117,7 +119,9 @@ public:
    */
   void setRcData(const Joy & joy_msg);
 
-  template <typename T> void setAction(Trigger_t trigger, T action);
+  void setActionCmd(const std::string & name, Trigger_t trigger,
+    std::shared_ptr<RunCmd_t> action);
+  void execActions();
 
   /**
    * @brief Get the last RC Data
@@ -129,9 +133,14 @@ public:
   RcType getRcData();
 private:
   RcTypes rc_type_;
+  rc_actions::ProcessesHandler processesHandler_;
   std::unique_ptr<RcType> last_rc_data_;
+  std::vector<Action_t> actions_list_;
+  // static RunCmd_t g_action_cmd_;
 
   void setXboxRcData(const Joy & joy_msg, RcType * rc_data);
+  template <typename T> void setAction(const std::string & name,
+    Trigger_t trigger, T action);
 };
 }
 

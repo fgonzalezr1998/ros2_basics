@@ -32,6 +32,7 @@ namespace rc_tb2
     }
 
     rc_type_ = rc_type;
+    actions_list_.clear();
     last_rc_data_ = nullptr;
   }
 
@@ -47,10 +48,45 @@ namespace rc_tb2
     last_rc_data_ = std::make_unique<RcType>(rc_data);
   }
 
-  template<> void RcTb2::setAction(Trigger_t trigger, RunCmd_t action)
+  /*
+   * Private Member. It has to be here forn no specialization after instantiation
+   */
+
+  template<> void
+  RcTb2::setAction(const std::string & name, Trigger_t trigger,
+    std::shared_ptr<RunCmd_t> action)
   {
-    // TODO: Modify this!
-    (void)system(action.cmd.c_str());
+    rc_actions::Action_t act;
+
+    act.name = name;
+    act.trigger = trigger;
+    act.action_type = rc_actions::Actions_e::RUN_CMD;
+    act.action = action;
+
+    actions_list_.push_back(act);
+  }
+
+  void
+  RcTb2::setActionCmd(const std::string & name, Trigger_t trigger,
+    std::shared_ptr<RunCmd_t> action)
+  {
+    this->setAction<std::shared_ptr<rc_actions::RunCmd_t>>(name, trigger, action);
+  }
+
+  /*
+   * For debugging
+   */
+
+  void
+  RcTb2::execActions()
+  {
+    rc_actions::RunCmd_t *cmd;
+    for (auto action : actions_list_) {
+      if (action.action_type == rc_actions::Actions_e::RUN_CMD) {
+        cmd = (RunCmd_t *)action.action.get();
+        processesHandler_.runCmd(cmd->cmd, action.name);
+      }
+    }
   }
 
   RcType

@@ -51,14 +51,19 @@ public:
     );
     rc_actions::Trigger_t trigger = {
       .button = "lt",
-      .value = true
+      .value = true,
     };
 
-    rc_actions::RunCmd_t action = {
-      .cmd = "echo hello world"
-    };
+    auto action = std::make_shared<rc_actions::RunCmd_t>("echo hello world");
+    rc_tb2_->setActionCmd("process1", trigger, action);
 
-    rc_tb2_->setAction<rc_actions::RunCmd_t>(trigger, action);
+    action = std::make_shared<rc_actions::RunCmd_t>("ros2 run demo_nodes_cpp talker");
+    rc_tb2_->setActionCmd("joy_node", trigger, action);
+
+    /* action = std::make_shared<rc_actions::RunCmd_t>("/home/fernando/Desktop/borrame.py");
+    rc_tb2_->setActionCmd("python_process", trigger, action); */
+
+    rc_tb2_->execActions();
   }
 
   void

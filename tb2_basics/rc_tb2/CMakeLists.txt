@@ -30,6 +30,9 @@ set(dependencies
 include_directories(include)
 
 add_library(RcTb2 SHARED src/rc_tb2/RcTb2.cpp)
+add_library(RcActions SHARED src/rc_actions/RcActions.cpp)
+
+target_link_libraries(RcTb2 RcActions)
 ament_target_dependencies(RcTb2 ${dependencies})
 
 add_executable(xbox_rc_tb2_node src/xbox_rc_tb2_node.cpp)
@@ -42,7 +45,7 @@ install(
 )
 
 install(
-  TARGETS RcTb2 xbox_rc_tb2_node
+  TARGETS RcTb2 RcActions xbox_rc_tb2_node
   EXPORT export_${PROJECT_NAME}
   DESTINATION lib/${PROJECT_NAME}
   LIBRARY DESTINATION lib
