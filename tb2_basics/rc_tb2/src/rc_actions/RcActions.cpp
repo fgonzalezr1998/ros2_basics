@@ -80,6 +80,7 @@ namespace rc_actions
     default:
       /* I'm the parent */
 
+      (void)setpgid(pid, 0);
       printf("Interting %s with pid: %d\n", name.c_str(), pid);
       processes_table_.insert({name, pid});
       break;

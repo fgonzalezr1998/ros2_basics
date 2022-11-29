@@ -54,7 +54,7 @@ public:
       .value = true,
     };
 
-    auto action = std::make_shared<rc_actions::RunCmd_t>("echo hello world");
+    auto action = std::make_shared<rc_actions::RunCmd_t>("echo Hello World");
     rc_tb2_->setActionCmd("process1", trigger, action);
 
     action = std::make_shared<rc_actions::RunCmd_t>("ros2 run demo_nodes_cpp talker");
