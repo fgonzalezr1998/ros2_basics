@@ -14,6 +14,11 @@ enum Actions_e {
   RUN_CMD = 1,
 };
 
+enum Buttons_e {
+  BUTTON_LT = 1,
+  BUTTON_RT = 2,
+};
+
 typedef struct RunCmd_t RunCmd_t;
 typedef struct Trigger_t Trigger_t;
 typedef struct Action_t Action_t;
@@ -27,8 +32,8 @@ struct RunCmd_t {
 };
 
 struct Trigger_t {
-  std::string button;
-  bool value;
+  Buttons_e button;
+  float value;
 };
 
 struct Action_t {

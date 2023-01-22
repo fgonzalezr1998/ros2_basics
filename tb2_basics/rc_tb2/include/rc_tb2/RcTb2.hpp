@@ -141,6 +141,9 @@ private:
   void setXboxRcData(const Joy & joy_msg, RcType * rc_data);
   template <typename T> void setAction(const std::string & name,
     Trigger_t trigger, T action);
+  void runActions(RcType rc_data);
+  void runAction(Action_t action);
+  void runCmdFromAction(Action_t action);
 };
 }
 

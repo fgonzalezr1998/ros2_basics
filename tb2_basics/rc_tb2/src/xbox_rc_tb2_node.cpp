@@ -49,21 +49,16 @@ public:
       rclcpp::QoS(1).best_effort(),
       std::bind(&Tb2Controller::joyCallback_, this, _1)
     );
-    rc_actions::Trigger_t trigger = {
-      .button = "lt",
-      .value = true,
-    };
+
+    rc_actions::Trigger_t trigger;
+
+    trigger.button = rc_actions::Buttons_e::BUTTON_LT;
+    trigger.value = (float)-1.0;
 
     auto action = std::make_shared<rc_actions::RunCmd_t>("echo Hello World");
     rc_tb2_->setActionCmd("process1", trigger, action);
 
-    action = std::make_shared<rc_actions::RunCmd_t>("ros2 run demo_nodes_cpp talker");
-    rc_tb2_->setActionCmd("joy_node", trigger, action);
-
-    /* action = std::make_shared<rc_actions::RunCmd_t>("/home/fernando/Desktop/borrame.py");
-    rc_tb2_->setActionCmd("python_process", trigger, action); */
-
-    rc_tb2_->execActions();
+    // rc_tb2_->execActions();
   }
 
   void

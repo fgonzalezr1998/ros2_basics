@@ -45,11 +45,15 @@ namespace rc_tb2
       setXboxRcData(joy_msg, &rc_data);
     }
 
+    // Exec action if proceed
+
+    runActions(rc_data);
+
     last_rc_data_ = std::make_unique<RcType>(rc_data);
   }
 
   /*
-   * Private Member. It has to be here forn no specialization after instantiation
+   * Private Member. It has to be here for no specialization after instantiation
    */
 
   template<> void
@@ -102,6 +106,35 @@ namespace rc_tb2
   /*
    * PRIVATE MEMBERS
    */
+
+  void
+  RcTb2::runActions(RcType rc_data)
+  {
+    for (auto action : actions_list_) {
+      if (action.trigger.button == rc_actions::BUTTON_LT) {
+        if (rc_data.lt == action.trigger.value) {
+          runAction(action);
+        }
+      }
+    }
+  }
+
+  void
+  RcTb2::runAction(Action_t action)
+  {
+    if (action.action_type == rc_actions::Actions_e::RUN_CMD) {
+      runCmdFromAction(action);
+    }
+  }
+
+  void
+  RcTb2::runCmdFromAction(Action_t action)
+  {
+    rc_actions::RunCmd_t *cmd;
+
+    cmd = (RunCmd_t *)action.action.get();
+    processesHandler_.runCmd(cmd->cmd, action.name);
+  }
 
   void
   RcTb2::setXboxRcData(const Joy & joy_msg, RcType * rc_data)
