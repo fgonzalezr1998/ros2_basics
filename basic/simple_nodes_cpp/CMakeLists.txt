@@ -10,11 +10,18 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 
 add_executable(iterative_node_cpp src/iterative_node_cpp.cpp)
-
 ament_target_dependencies(iterative_node_cpp rclcpp)
+
+add_executable(timer_node_cpp src/timer_node_cpp.cpp)
+ament_target_dependencies(timer_node_cpp rclcpp)
 
 install(TARGETS
   iterative_node_cpp
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(TARGETS
+  timer_node_cpp
   DESTINATION lib/${PROJECT_NAME}
 )
 

@@ -2,23 +2,30 @@
 #include <stdlib.h>
 #include <string>
 #include <memory>
+#include <chrono>
+
+using namespace std::chrono_literals;
 
 #define LOOP_RATE   1.0   // Hz
 
-class ItNodeCpp :  public rclcpp::Node
+class TimerNodeCpp :  public rclcpp::Node
 {
 public:
-    ItNodeCpp(const std::string & node_name)
+    TimerNodeCpp(const std::string & node_name)
     : Node(node_name), i_(0)
     {
         RCLCPP_INFO(this->get_logger(), "Hi!, I'm the [%s] node\n", node_name.c_str());
+        this->create_wall_timer(
+            500ms,
+            std::bind(&TimerNodeCpp::step, this));
     }
 
+private:
     void step()
     {
         RCLCPP_INFO(this->get_logger(), "Step [%d]\n", i_++);
     }
-private:
+
     int i_;
 };
 
@@ -26,14 +33,9 @@ int main(int argc, char ** argv)
 {
     rclcpp::init(argc, argv);
 
-    ItNodeCpp iterative_node("terative_node_cpp");
+    std::shared_ptr<TimerNodeCpp> iterative_node = std::make_shared<TimerNodeCpp>("timer_node_cpp");
 
-    rclcpp::Rate loop_rate(LOOP_RATE);
-
-    while (rclcpp::ok()) {
-        iterative_node.step();
-        loop_rate.sleep();
-    }
+    rclcpp::spin(iterative_node);
 
     rclcpp::shutdown();
     exit(EXIT_SUCCESS);
