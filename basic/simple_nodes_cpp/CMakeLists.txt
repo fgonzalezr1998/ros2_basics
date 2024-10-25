@@ -15,6 +15,9 @@ ament_target_dependencies(iterative_node_cpp rclcpp)
 add_executable(timer_node_cpp src/timer_node_cpp.cpp)
 ament_target_dependencies(timer_node_cpp rclcpp)
 
+add_executable(simple_pub_node_cpp src/simple_pub_cpp.cpp)
+ament_target_dependencies(simple_pub_node_cpp rclcpp)
+
 install(TARGETS
   iterative_node_cpp
   DESTINATION lib/${PROJECT_NAME}
@@ -22,6 +25,11 @@ install(TARGETS
 
 install(TARGETS
   timer_node_cpp
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(TARGETS
+  simple_pub_node_cpp
   DESTINATION lib/${PROJECT_NAME}
 )
 
