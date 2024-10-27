@@ -8,6 +8,7 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
 
 add_executable(iterative_node_cpp src/iterative_node_cpp.cpp)
 ament_target_dependencies(iterative_node_cpp rclcpp)
@@ -16,7 +17,13 @@ add_executable(timer_node_cpp src/timer_node_cpp.cpp)
 ament_target_dependencies(timer_node_cpp rclcpp)
 
 add_executable(simple_pub_node_cpp src/simple_pub_cpp.cpp)
-ament_target_dependencies(simple_pub_node_cpp rclcpp)
+ament_target_dependencies(simple_pub_node_cpp rclcpp std_msgs)
+
+add_executable(simple_sub_node_cpp src/simple_sub_cpp.cpp)
+ament_target_dependencies(simple_sub_node_cpp rclcpp std_msgs)
+
+add_executable(simple_sub_node_iterative_cpp src/simple_sub_iterative_cpp.cpp)
+ament_target_dependencies(simple_sub_node_iterative_cpp rclcpp std_msgs)
 
 install(TARGETS
   iterative_node_cpp
@@ -30,6 +37,16 @@ install(TARGETS
 
 install(TARGETS
   simple_pub_node_cpp
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(TARGETS
+  simple_sub_node_cpp
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(TARGETS
+  simple_sub_node_iterative_cpp
   DESTINATION lib/${PROJECT_NAME}
 )
 

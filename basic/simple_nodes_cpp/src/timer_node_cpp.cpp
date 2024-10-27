@@ -11,32 +11,33 @@ using namespace std::chrono_literals;
 class TimerNodeCpp :  public rclcpp::Node
 {
 public:
-    TimerNodeCpp(const std::string & node_name)
-    : Node(node_name), i_(0)
-    {
-        RCLCPP_INFO(this->get_logger(), "Hi!, I'm the [%s] node\n", node_name.c_str());
-        this->create_wall_timer(
-            500ms,
-            std::bind(&TimerNodeCpp::step, this));
-    }
+  TimerNodeCpp(const std::string & node_name)
+  : Node(node_name), i_(0)
+  {
+    RCLCPP_INFO(this->get_logger(), "Hi!, I'm the [%s] node\n", node_name.c_str());
+    timer_ = this->create_wall_timer(
+        500ms,
+        std::bind(&TimerNodeCpp::step, this));
+  }
 
 private:
-    void step()
-    {
-        RCLCPP_INFO(this->get_logger(), "Step [%d]\n", i_++);
-    }
+  void step()
+  {
+    RCLCPP_INFO(this->get_logger(), "Step [%d]\n", i_++);
+  }
 
-    int i_;
+  rclcpp::TimerBase::SharedPtr timer_;
+  int i_;
 };
 
 int main(int argc, char ** argv)
 {
-    rclcpp::init(argc, argv);
+  rclcpp::init(argc, argv);
 
-    std::shared_ptr<TimerNodeCpp> iterative_node = std::make_shared<TimerNodeCpp>("timer_node_cpp");
+  std::shared_ptr<TimerNodeCpp> iterative_node = std::make_shared<TimerNodeCpp>("timer_node_cpp");
 
-    rclcpp::spin(iterative_node);
+  rclcpp::spin(iterative_node);
 
-    rclcpp::shutdown();
-    exit(EXIT_SUCCESS);
+  rclcpp::shutdown();
+  exit(EXIT_SUCCESS);
 }

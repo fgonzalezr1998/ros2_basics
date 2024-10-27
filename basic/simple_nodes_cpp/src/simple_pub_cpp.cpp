@@ -3,38 +3,46 @@
 #include <string>
 #include <memory>
 
-#define LOOP_RATE   1.0   // Hz
+#include <std_msgs/msg/int32.hpp>
 
-class SimplePub :  public rclcpp::Node
+#define LOOP_RATE   2.0   // Hz
+
+class SimplePub : public rclcpp::Node
 {
 public:
-    SimplePub(const std::string & node_name)
-    : Node(node_name), i_(0)
-    {
-        RCLCPP_INFO(this->get_logger(), "Hi!, I'm the [%s] node\n", node_name.c_str());
-    }
+  SimplePub(const std::string & node_name)
+  : Node(node_name), i_(0)
+  {
+    intPublisher_ = this->create_publisher<std_msgs::msg::Int32>(
+      "sample_topic",
+      rclcpp::QoS(4));
+  }
 
-    void step()
-    {
-        RCLCPP_INFO(this->get_logger(), "Step [%d]\n", i_++);
-    }
+  void step()
+  {
+    msg2Pub_.data = i_++;
+
+    intPublisher_->publish(msg2Pub_);
+  }
 private:
-    int i_;
+  rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr intPublisher_;
+  std_msgs::msg::Int32 msg2Pub_;
+  int i_;
 };
 
 int main(int argc, char ** argv)
 {
-    rclcpp::init(argc, argv);
+  rclcpp::init(argc, argv);
 
-    auto simple_pub_node = std::make_shared<SimplePub>("simple_pub_node_cpp");
+  auto simple_pub_node = std::make_shared<SimplePub>("simple_pub_node_cpp");
 
-    rclcpp::Rate loop_rate(LOOP_RATE);
+  rclcpp::Rate loop_rate(LOOP_RATE);
 
-    while (rclcpp::ok()) {
-        simple_pub_node->step();
-        loop_rate.sleep();
-    }
+  while (rclcpp::ok()) {
+    simple_pub_node->step();
+    loop_rate.sleep();
+  }
 
-    rclcpp::shutdown();
-    exit(EXIT_SUCCESS);
+  rclcpp::shutdown();
+  exit(EXIT_SUCCESS);
 }
